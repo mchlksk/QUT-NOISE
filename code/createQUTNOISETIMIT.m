@@ -1,4 +1,4 @@
-function createQUTNOISETIMIT(timitfolder)
+function createQUTNOISETIMIT(timitfolder, speechstartrange)
 %
 % CREATEQUTNOISETIMIT creates the entire QUT-NOISE-TIMIT database
 %
@@ -22,6 +22,7 @@ for i = 1:length(splits)
 			      gettxt(['timit.' splits{i} '.lab.list']), ...
 			      '../QUT-NOISE-TIMIT', 16e3, ... 
 			      gettxt(['QUT-NOISE-TIMIT.' splits{i} '.wavlist']), ... 
-			      'recreate') 
+			      speechstartrange, ...
+			      'recreate')
 end
 

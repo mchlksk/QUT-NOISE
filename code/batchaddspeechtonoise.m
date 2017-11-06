@@ -2,8 +2,10 @@ function id = batchaddspeechtonoise(wavfolder, labelfolder, ...
 				     impulsefolder, speechfolder, ...
 				     speechlist, speechlablist, ...
 				     outfolder, wantedfs, wavname, ...
-				     splitname, startid, countv, noiselengths, ...
-				     snrs, speechpercentv, concatprob, maxoverlap) 
+				     speechstartrange, ...
+				     splitname, ... % 'recreate'
+				     startid, countv, noiselengths, ...
+				     snrs, speechpercentv, concatprob, maxoverlap)
 %
 % BATCHADDSPEECHTONOISE creates a batch of noisy sequences
 %
@@ -104,7 +106,8 @@ if strcmp(splitname, 'recreate')
     name = createwav(noisewavfile, labelfile, impulsefile, speechfolder, ... 
 		     speechlist, speechlablist, splitname, noiselength, ...
 		     wantedfs, snr, id, seed, [], ...
-		     concatprob, maxoverlap, folder);
+		     concatprob, maxoverlap, folder, ...
+		     speechstartrange);
 
     fprintf(1, sprintf('[%6d/%6d] %s\n',i,length(wavlist),name));
   end
@@ -158,7 +161,8 @@ else
 	  name = createwav(noisewavfile, labelfile, impulsefile, speechfolder, ... 
 			   speechlist, speechlablist, currentsplitname, noiselength, ...
 			   wantedfs, snr, id, seed, speechpercent, concatprob, ...
-			   maxoverlap, folder);
+			   maxoverlap, folder, ...
+			   speechstartrange);
 	  
 	  fprintf(1, sprintf('[%3d/%3d] %s\n',id-startid,total,name));
 	end
@@ -188,7 +192,8 @@ end
 function name = createwav(noisewavfile, labelfile, impulsefile, speechfolder, ... 
 			  speechlist, speechlablist, splitname, noiselength, ...
 			  wantedfs, snr, id, seed, speechpercent, concatprob, ...
-			  maxoverlap, folder) 
+			  maxoverlap, folder, ...
+			  speechstartrange) 
 
 % because speech percent is not precise, we loop until we get a
 % file within the speechpercent bounds (if specified)
@@ -205,17 +210,34 @@ while 1
    %   or [min max] expressed as fractions
    % if it is [min max] we want to check that it actual is
    %   within the range
-   if size(speechpercent,2) < 2 | ...
-	 ( str2num(meta.PercentSpeech) >= speechpercent(1)*100 & ...
+   if size(speechpercent,2) > 1
+     if ~( str2num(meta.PercentSpeech) >= speechpercent(1)*100 & ...
 	   str2num(meta.PercentSpeech) <= speechpercent(2)*100 )
-     break
+       continue
+     end
    end
 
+   speechstart = str2num(meta.FirstSpeechLocation);
+   if (speechstart < speechstartrange(1)) | (speechstart > speechstartrange(2))
+     if ~isempty(seed)
+       warning(sprintf('FirstSpeechLocation (%f) does not satisfy given range (%f, %f), violating seed', speechstart, speechstartrange(1), speechstartrange(2)));
+       seed=[];
+     else
+       fprintf('.\n');
+     end
+     continue
+   end
+   break
 end
 
 % save wav file
 warning off;
-wavwrite(speech,fs,16,[folder '/' name '.wav']);
+
+% MATLAB wavwrite UNSUPPORTED FIX
+%wavwrite(speech,fs,16,[folder '/' name '.wav']);
+fprintf('FOLDER: %s, NAME: %s\n', folder, name);
+audiowrite([folder '/' name '.wav'], speech, fs);
+
 warning on;
 
 % save label files
